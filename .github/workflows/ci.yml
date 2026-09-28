@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project:
+          - projects/enterprise-rag-api
+          - projects/incident-response-agent
+          - projects/ai-eval-observability
+          - projects/secure-data-pipeline
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pytest
+      - name: Test ${{ matrix.project }}
+        working-directory: ${{ matrix.project }}
+        run: python -m pytest -q
+
+  typescript-iac:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/aws-ai-platform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: npm run build
+      - run: npx cdk synth
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install bandit
+      - run: bandit -r projects -x '*/test_*.py'
